@@ -1,4 +1,29 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="false" userDefinedModelVersionIdentifier="">
-    <elements/>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="15702" systemVersion="19C57" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Courier" representedClassName=".Courier" syncable="YES">
+        <attribute name="busyNow" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <relationship name="trip" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Trip" inverseName="courier" inverseEntity="Trip"/>
+    </entity>
+    <entity name="Day" representedClassName=".Day" syncable="YES">
+        <attribute name="date" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="trips" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Trip" inverseName="day" inverseEntity="Trip"/>
+    </entity>
+    <entity name="Destination" representedClassName=".Destination" syncable="YES">
+        <attribute name="daysInTrip" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="destination" attributeType="String"/>
+        <relationship name="trip" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Trip" inverseName="destination" inverseEntity="Trip"/>
+    </entity>
+    <entity name="Trip" representedClassName=".Trip" syncable="YES">
+        <attribute name="startDate" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="courier" maxCount="1" deletionRule="Nullify" destinationEntity="Courier" inverseName="trip" inverseEntity="Courier"/>
+        <relationship name="day" toMany="YES" deletionRule="Nullify" destinationEntity="Day" inverseName="trips" inverseEntity="Day"/>
+        <relationship name="destination" maxCount="1" deletionRule="Nullify" destinationEntity="Destination" inverseName="trip" inverseEntity="Destination"/>
+    </entity>
+    <elements>
+        <element name="Courier" positionX="-226.46875" positionY="-63.0625" width="128" height="88"/>
+        <element name="Day" positionX="-27" positionY="-90" width="128" height="73"/>
+        <element name="Destination" positionX="169.72265625" positionY="-62.953125" width="128" height="88"/>
+        <element name="Trip" positionX="-29.234375" positionY="-171.375" width="128" height="103"/>
+    </elements>
 </model>
