@@ -102,7 +102,7 @@ class CoreDataManager {
                 }
             }
             for c in couriers{
-                print(c.name ?? "noName")
+                print(c.name)
             }
             
             if let result = try dbContext.fetch(Destination.fetchRequest()) as? [Destination]{
@@ -124,7 +124,7 @@ class CoreDataManager {
                 }
             }
             for d in destinations{
-                print("\(d.destination ?? "no destination") for \(d.daysInTrip) days")
+                print("\(d.destination) for \(d.daysInTrip) days")
             }
         }
         catch{
