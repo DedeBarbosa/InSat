@@ -27,7 +27,7 @@ class TripsTableViewController: UITableViewController {
         tableView.reloadData()
     }
     func updateTitle(with date: Date){
-        let navigationVC = self.navigationController as? UINavigationController
+        let navigationVC = self.navigationController
         navigationVC?.viewControllers[0].title = MyDateFormatter.shared.formatDateAsNumbers(date: date)
     }
     // MARK: - Table view data source
