@@ -9,50 +9,16 @@
 import CoreData
 import Foundation
 
-enum EntityEnum: String{
-    case Courier
-    case Destination
-    case Trip
-    case Day
-}
+
 class CoreDataManager {
     
-    // Singleton
-    static let shared = CoreDataManager()
-    
-    private init() {}
-    
-    func getEntityDescription(by entityEnum: EntityEnum) -> NSEntityDescription {
-        return NSEntityDescription.entity(forEntityName: entityEnum.rawValue, in: self.persistentContainer.viewContext)!
+    //MARK: - Constants
+    enum EntityEnum: String{
+        case Courier
+        case Destination
+        case Trip
+        case Day
     }
-    
-    // MARK: - Core Data stack
-    
-    lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "InSat")
-        container.loadPersistentStores(completionHandler: { (storeDescription,error) in
-            if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
-            }
-        })
-        return container
-    }()
-    
-    // MARK: - Core Data Saving support
-    
-    func saveContext () {
-        let context = persistentContainer.viewContext
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch {
-                let nserror = error as NSError
-                fatalError("Unresolved error \(nserror),\(nserror.userInfo)")
-            }
-        }
-    }
-    
-    // MARK: - My Core Data Code
     let courierDefaultNames = ["Mitya",
                                "Anton",
                                "Evgen",
@@ -64,76 +30,66 @@ class CoreDataManager {
                                "Stas",
                                "Kamil"]
     
-    let destinationDefaultSettings = [(c: "SPB", d: 1),
-                                      (c: "Ufa", d: 2),
-                                      (c: "NiNo", d: 3),
-                                      (c: "Vladimir", d: 4),
-                                      (c: "Kostroma", d: 5),
-                                      (c: "EKB", d: 1),
-                                      (c: "Kovrov", d: 2),
-                                      (c: "Voronezh", d: 3),
-                                      (c: "Samara", d: 4),
-                                      (c: "Astrahan'", d: 5)]
+    let destinationDefaultSettings = [(destination: "SPB", days: 1),
+                                      (destination: "Ufa", days: 2),
+                                      (destination: "NiNo", days: 3),
+                                      (destination: "Vladimir", days: 4),
+                                      (destination: "Kostroma", days: 5),
+                                      (destination: "EKB", days: 1),
+                                      (destination: "Kovrov", days: 2),
+                                      (destination: "Voronezh", days: 3),
+                                      (destination: "Samara", days: 4),
+                                      (destination: "Astrahan'", days: 5)]
     
-    lazy var dbManager = CoreDataManager.shared
+    
+    // Singleton
+    static let shared = CoreDataManager()
+    
+    private init() {
+    }
+    
+    func getEntityDescription(by entityEnum: EntityEnum) -> NSEntityDescription {
+        return NSEntityDescription.entity(forEntityName: entityEnum.rawValue, in: self.persistentContainer.viewContext)!
+    }
+    // MARK: - My Core Data Code
+    
+    lazy var dbManager = self
     lazy var dbContext = dbManager.persistentContainer.viewContext
     var destinations = [Destination]()
     var couriers = [Courier]()
     let calendar = Calendar.current
     
     
-    func firstInit(with delete: Bool = false) {
+    func firstInit() {
         do{
             if let result = try dbContext.fetch(Courier.fetchRequest()) as? [Courier]{
-                if delete{
-                    for r in result{
-                        dbContext.delete(r)
-                        dbManager.saveContext()
-                    }
-                    for c in courierDefaultNames{
+                couriers = result
+                for cName in courierDefaultNames{
+                    if !couriers.contains{c in c.name == cName}{
                         let courierObject = Courier()
-                        courierObject.name = c
+                        courierObject.name = cName
                         dbManager.saveContext()
                         couriers.append(courierObject)
                     }
                 }
-                else{
-                    couriers = result
-                }
             }
-            for c in couriers{
-                print(c.name)
-            }
-            
             if let result = try dbContext.fetch(Destination.fetchRequest()) as? [Destination]{
-                if delete{
-                    for r in result{
-                        dbContext.delete(r)
-                        dbManager.saveContext()
-                    }
-                    for c in destinationDefaultSettings{
+                destinations = result
+                for dSettings in destinationDefaultSettings{
+                    if !destinations.contains{d in d.destination == dSettings.destination}{
                         let destinationObject = Destination()
-                        destinationObject.destination = c.c
-                        destinationObject.daysInTrip = Int16(c.d)
+                        destinationObject.destination = dSettings.destination
+                        destinationObject.daysInTrip = Int16(dSettings.days)
                         dbManager.saveContext()
                         destinations.append(destinationObject)
                     }
                 }
-                else{
-                    destinations = result
-                }
-            }
-            for d in destinations{
-                print("\(d.destination) for \(d.daysInTrip) days")
             }
         }
-        catch{
-            
-        }
+        catch{}
     }
     
     func randomlyFillTripsData(){
-        firstInit()
         var oneDayComponent = DateComponents()
         oneDayComponent.day = 1
         
@@ -161,19 +117,23 @@ class CoreDataManager {
         dayObject.date = startDay
         while dayDate < Date(){
             dayDate = calendar.date(byAdding: oneDayComponent, to: dayDate) ?? Date()
-            
             if let day = getDay(by: dayDate){
-                let freeCouriers : [Courier] = getFreeCouriers(by: day)
+                let freeCouriers : [Courier] = getFreeCouriers(by: dayDate)
                 sendCouriers(couriers: freeCouriers, startDay: day)
             }
             else{
-                let day = Day()
-                day.date = dayDate
-                dbManager.saveContext()
+                let day = createDay(by: dayDate)
                 sendCouriers(couriers: couriers, startDay: day)
             }
         }
         
+    }
+    
+    func createDay(by date: Date) -> Day{
+        let day = Day()
+        day.date = date
+        dbManager.saveContext()
+        return day
     }
     
     func getDay(by date: Date) -> Day?{
@@ -191,7 +151,7 @@ class CoreDataManager {
         }
     }
     
-    func getBusyCouriers(by day: Day) -> [Courier]{
+    private func getBusyCouriers(by day: Day) -> [Courier]{
         var busyCouriers = [Courier]()
         if let trips = day.trips?.allObjects as? [Trip]{
             for t in trips{
@@ -201,14 +161,16 @@ class CoreDataManager {
         return busyCouriers
     }
     
-    func getFreeCouriers(by day: Day) -> [Courier]{
-        var freeCouriers = [Courier]()
-        let busyCouriers = getBusyCouriers(by: day)
-        freeCouriers = couriers.filter({c in !busyCouriers.contains(c)})
+    func getFreeCouriers(by date: Date) -> [Courier]{
+        var freeCouriers = couriers
+        if let day = getDay(by: date){
+            let busyCouriers = getBusyCouriers(by: day)
+            freeCouriers = couriers.filter({c in !busyCouriers.contains(c)})
+        }
         return freeCouriers
     }
     
-    func sendCouriers(couriers: [Courier], startDay: Day){
+    private func sendCouriers(couriers: [Courier], startDay: Day){
         if couriers.count == 0 { return }
         for c in couriers{
             let day = startDay
@@ -241,8 +203,26 @@ class CoreDataManager {
         }
     }
     
-    func readDays(){
+    func sendCourier(by name: String, startDate: Date, to destination: String){
+        if let courier = couriers.last(where: {c in c.name == name}), let destination = destinations.last(where: {d in d.destination == destination}){
+            let day: Day
+            if let existDay = getDay(by: startDate){
+                day = existDay
+            }
+            else{
+                day = createDay(by: startDate)
+            }
+            let trip = Trip()
+            trip.courier = courier
+            trip.startDate = startDate
+            trip.destination = destination
+            day.addToTrips(trip)
+            dbManager.saveContext()
+        }
         
+    }
+    
+    func readDays(){
         do{
             if let result = try dbContext.fetch(Day.fetchRequest()) as? [Day]{
                 for r in result{
@@ -257,7 +237,6 @@ class CoreDataManager {
                         }
                         
                     }
-                    
                 }
             }
         }
@@ -301,6 +280,33 @@ class CoreDataManager {
         }
         catch{}
         return trips
+    }
+    
+
+    // MARK: - Core Data stack
+    
+    lazy var persistentContainer: NSPersistentContainer = {
+        let container = NSPersistentContainer(name: "InSat")
+        container.loadPersistentStores(completionHandler: { (storeDescription,error) in
+            if let error = error as NSError? {
+                fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+        })
+        return container
+    }()
+    
+    // MARK: - Core Data Saving support
+    
+    func saveContext () {
+        let context = persistentContainer.viewContext
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch {
+                let nserror = error as NSError
+                fatalError("Unresolved error \(nserror),\(nserror.userInfo)")
+            }
+        }
     }
     
 }

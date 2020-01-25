@@ -11,17 +11,31 @@ import KDCalendar
 class CalendarViewController: UIViewController {
 
     
-    @IBOutlet weak var calendar: CalendarView!
+    @IBOutlet weak var calendarView: CalendarView!
+    var currentDate: Date?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        calendar.delegate = self
-        calendar.dataSource = self
-        calendar.multipleSelectionEnable = false
+        calendarView.delegate = self
+        calendarView.dataSource = self
+        calendarView.multipleSelectionEnable = false
+        if let currentDate = currentDate{
+            calendarView.setDisplayDate(currentDate)
+        }
+        else{
+            calendarView.setDisplayDate(Date())
+        }
+        
     }
+    
+    
 }
 extension CalendarViewController: CalendarViewDelegate{
+    
+    
+    
     func calendar(_ calendar: CalendarView, didScrollToMonth date: Date) {
-        
+        currentDate = date
     }
     
     func calendar(_ calendar: CalendarView, didSelectDate date: Date, withEvents events: [CalendarEvent]) {
@@ -57,7 +71,7 @@ extension CalendarViewController: CalendarViewDataSource{
     }
     
     func headerString(_ date: Date) -> String? {
-        MyDateFormatter.shared.formatDateAsMonthYear(date: date)
+        MyDateFormatter.shared.formatDateToMonthYear(date: date)
     }
     
     

@@ -13,15 +13,22 @@ class MyDateFormatter{
     private let dateFormatter = DateFormatter()
     private let monthYearFormatter = DateFormatter()
     private init(){
-        dateFormatter.dateFormat = "dd-MM-yyyy"
+        dateFormatter.dateFormat = "dd.MM.yyyy"
         monthYearFormatter.dateFormat = "MMMM yyyy"
     }
     
-    func formatDateAsNumbers(date: Date) -> String{
+    func formatDateToString(date: Date) -> String{
         dateFormatter.string(from: date)
     }
     
-    func formatDateAsMonthYear(date: Date) -> String{
+    func formatStringToDate(string: String?) -> Date?{
+        if let string = string{
+           return dateFormatter.date(from: string)
+        }
+        return nil
+    }
+    
+    func formatDateToMonthYear(date: Date) -> String{
         monthYearFormatter.string(from: date)
     }
 }

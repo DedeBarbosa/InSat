@@ -15,6 +15,18 @@ class AddTripViewController: UIViewController {
     @IBOutlet weak var destinationTF: UITextField!
     @IBOutlet weak var comeToDestinationLabel: UILabel!
     
+    @IBAction func SendCourier(_ sender: Any) {
+        if let stringDate = startDateTF.text, let courierName = courierTF.text, let destination = destinationTF.text ,let date = MyDateFormatter.shared.formatStringToDate(string: stringDate){
+            CoreDataManager.shared.sendCourier(by: courierName, startDate: date, to: destination)
+            startDateTF.text = nil
+            courierTF.text = nil
+            destinationTF.text = nil
+            comeToDestinationLabel.text = nil
+            if let tripsVc = self.navigationController?.viewControllers.last(where: {vc in vc is TripsTableViewController}) as? TripsTableViewController{
+                tripsVc.selfUpdateTrips()
+            }
+        }
+    }
     var activeTextField = UITextField()
     
     var destinations = [Destination]()
@@ -24,6 +36,16 @@ class AddTripViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         configureView()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        AppUtility.lockOrientation(.portrait, andRotateTo: .portrait)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        AppUtility.lockOrientation(.all)
     }
     
     func configureView(){
@@ -40,11 +62,12 @@ class AddTripViewController: UIViewController {
             UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.flexibleSpace, target: nil, action: nil),
             UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(self.doneAction))], animated: false)
         toolBar.isUserInteractionEnabled = true
+        
         let datePicker = UIDatePicker()
         datePicker.accessibilityIdentifier = "date"
         datePicker.datePickerMode = .date
+        datePicker.minimumDate = Date(timeInterval: 24*60*60, since: Date())
         
-//        datePicker.addTarget(self, action: #selector(dateChanged(_:)), for: .valueChanged)
         startDateTF.inputView = datePicker
         startDateTF.inputAccessoryView = toolBar
         destinations = CoreDataManager.shared.readDestinations()
@@ -70,15 +93,19 @@ class AddTripViewController: UIViewController {
         switch activeTextField {
         case startDateTF:
             if let v = inputView as? UIDatePicker{
-                startDateTF.text = MyDateFormatter.shared.formatDateAsNumbers(date: v.date)
+                startDateTF.text = MyDateFormatter.shared.formatDateToString(date: v.date)
             }
         case destinationTF:
             if let v = inputView as? UIPickerView{
-                destinationTF.text = destinations[v.selectedRow(inComponent: 0)].destination
+                if destinations.count > 0{
+                    destinationTF.text = destinations[v.selectedRow(inComponent: 0)].destination
+                }
             }
         case courierTF:
             if let v = inputView as? UIPickerView{
-                courierTF.text = couriers[v.selectedRow(inComponent: 0)].name
+                if couriers.count > 0{
+                    courierTF.text = couriers[v.selectedRow(inComponent: 0)].name
+                }
             }
         default:
             activeTextField.resignFirstResponder()
@@ -88,11 +115,36 @@ class AddTripViewController: UIViewController {
     @objc func cancelAction(){
         activeTextField.resignFirstResponder()
     }
+    
+    func updateComeToDestinationLabel(with date: Date){
+        if let destination = destinationTF.text, let daysInTrip = destinations.last(where:{d in
+                d.destination == destination
+        })?.daysInTrip, let dateToCome = Calendar.current.date(byAdding: DateComponents(day: Int(daysInTrip/2)), to: date){
+            comeToDestinationLabel.text = MyDateFormatter.shared.formatDateToString(date: dateToCome)
+        }
+    }
 }
 
 extension AddTripViewController: UITextFieldDelegate{
     func textFieldDidBeginEditing(_ textField: UITextField) {
         activeTextField = textField
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        switch activeTextField{
+        case startDateTF:
+            if let date = MyDateFormatter.shared.formatStringToDate(string: startDateTF.text){
+                couriers = CoreDataManager.shared.getFreeCouriers(by: date)
+                courierTF.text = nil
+                updateComeToDestinationLabel(with: date)
+            }
+        case destinationTF:
+            if let date = MyDateFormatter.shared.formatStringToDate(string: startDateTF.text){
+                updateComeToDestinationLabel(with: date)
+            }
+        default:
+            return
+        }
     }
 }
 
@@ -107,17 +159,6 @@ extension AddTripViewController: UIPickerViewDelegate{
             return nil
         }
     }
-    
-//    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-//        switch pickerView.accessibilityIdentifier{
-//        case "destination":
-//            destinationTF.text = destinations[row].destination
-//        case "courier":
-//            courierTF.text = couriers[row].name
-//        default:
-//            return
-//        }
-//    }
 }
 
 extension AddTripViewController: UIPickerViewDataSource{
@@ -135,6 +176,4 @@ extension AddTripViewController: UIPickerViewDataSource{
             return 1
         }
     }
-    
-    
 }
